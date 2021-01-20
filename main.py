@@ -14,7 +14,7 @@ import keras.layers as kl
 
 
 #made a pr test1234567
-
+#test branch2
 
 #load data
 #mnist=fetch_openml('mnist_784')
