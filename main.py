@@ -2,7 +2,7 @@
 import tensorflow as tf
 from tensorflow.examples.tutorials.mnist import input_data
 from sklearn.datasets import fetch_openml
-from utils import *
+#from utils import *
 import pickle as pkl
 import numpy as np
 import pdb
@@ -12,7 +12,9 @@ from keras.layers import Dense, Conv2D, Flatten,MaxPooling2D
 
 import keras.layers as kl
 
+import test_import as test_import
 
+test_import()
 #made a pr test1234567
 #test branch2
 
