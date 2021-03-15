@@ -1,13 +1,77 @@
-## This is a repo for practicing git
+# Built-in Simple Executors and Reserved `uses` in Jina
 
-</p>
-<p align=center>
-<a href="#license"><img src="https://github.com/jina-ai/jina/blob/master/.github/badges/license-badge.svg?raw=true" alt="Jina" title="Jina is licensed under Apache-2.0"></a>
-<a href="https://pypi.org/project/jina/"><img src="https://github.com/jina-ai/jina/blob/master/.github/badges/python-badge.svg?raw=true" alt="Python 3.7 3.8 3.9" title="Jina supports Python 3.7 and above"></a>
-<a href="https://pypi.org/project/jina/"><img src="https://img.shields.io/pypi/v/jina?color=%23099cec&amp;label=PyPI&amp;logo=pypi&amp;logoColor=white" alt="PyPI"></a>
-<a href="https://hub.docker.com/r/jinaai/jina/tags"><img src="https://img.shields.io/docker/v/jinaai/jina?color=%23099cec&amp;label=Docker&amp;logo=docker&amp;logoColor=white&amp;sort=semver" alt="Docker Image Version (latest semver)"></a>
-<a href="https://github.com/jina-ai/jina/actions?query=workflow%3ACI"><img src="https://github.com/jina-ai/jina/workflows/CI/badge.svg" alt="CI"></a>
-<a href="https://github.com/jina-ai/jina/actions?query=workflow%3ACD"><img src="https://github.com/jina-ai/jina/workflows/CD/badge.svg?branch=master" alt="CD"></a>
-<a href="https://codecov.io/gh/jina-ai/jina"><img src="https://codecov.io/gh/jina-ai/jina/branch/master/graph/badge.svg" alt="codecov"></a>
-<a href="https://docs.jina.ai/"><img src="https://img.shields.io/badge/docstringcov-100%25-brightgreen" alt="docstringcov"></a>
-</p>
+- [Built-in Simple Executors and Reserved `uses` in Jina](#built-in-simple-executors-and-reserved--uses--in-jina)
+  * [What is Simple Executor?](#what-is-simple-executor)
+  * [What are the reserved `uses`?](#what-are-the-reserved-uses)
+  * [How to use built-in Simple Executors?](#how-to-use-built-in-simple-executors)
+
+## What is Simple Executor?
+
+In Jina we have several built-in some *simple* executors, which are located in `jina/resources/`. They are called simple for two reasons:
+
+- It only requires a YAML config, no Python code is required;
+- It inherits from `BaseExecutor` directly, its logic thus fully relies on the drivers.
+
+For example, the built-in `_clear` executor is defined as:
+
+```yaml
+!BaseExecutor
+with: {}
+metas:
+  name: clear
+requests:
+  on:
+    SearchRequest:
+      - !ExcludeReqQL
+        with:
+          fields:
+            - search
+    TrainRequest:
+      - !ExcludeReqQL
+        with:
+          fields:
+            - train
+    IndexRequest:
+      - !ExcludeReqQL
+        with:
+          fields:
+            - index
+    DeleteRequest:
+      - !ExcludeReqQL
+        with:
+          fields:
+            - delete
+    UpdateRequest:
+      - !ExcludeReqQL
+        with:
+          fields:
+            - update
+    ControlRequest:
+      - !ControlReqDriver {}
+```
+
+It cleans up request from the request-level protobuf message to reduce the total size of the message. This is often useful when the proceeding Pods require only a signal, not the full message.
+
+## What are the reserved `uses`?
+
+To help users quickly use these patterns, we reserved the following keywords for the `uses`. They all start with underscore.
+
+| Reserved Name | Description |
+| --- | --- |
+| `_clear` | Clear request body from a message |
+| `concat` | Concat all embeddings into one, grouped by ``doc.id`` |
+| `eval_pr` | Evaluate ``precision`` and ``recall`` |
+| `_index` | A simple compound indexer of ``NumpyIndexer`` and ``BinaryPbIndexer`` |
+| `_logforward` | Like `_pass`, but print the message |
+| `_pass` | Pass the message to the downstream |
+| `_merge_chunks` | Merges chunks from requests |
+| `_merge_matches` | Merges matches from requests |
+| `_merge_matches_topk` | Merge the top-k search results at match level |
+| `_merge_eval` | Merge all evaluations into one, grouped by ``doc.id`` |
+| `_merge_root` | Merge results at root level |
+
+## How to use built-in Simple Executors?
+
+You can directly use this executor by specifying `--uses=_clear`, or use it in `--uses-after` after collecting results from replicas.
+
+Where ever you need to use `uses` in Jina, you can take any one from the table to fill in.
