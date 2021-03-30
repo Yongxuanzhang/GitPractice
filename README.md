@@ -1,126 +1,81 @@
-# Search Pokemon Images with Jina
 
-In this example, we use [BiT (Big Transfer)](https://github.com/google-research/big_transfer), to build an end-to-end **neural image search** system. You can use this demo to index an image dataset and query the most similar image from it. 
+# PDF search
 
-Features that come out of the box:
+<p align="center">
+ 
+[![Jina](https://github.com/jina-ai/jina/blob/master/.github/badges/jina-badge.svg "We fully commit to open-source")](https://jina.ai)
+[![Jina](https://github.com/jina-ai/jina/blob/master/.github/badges/jina-hello-world-badge.svg "Run Jina 'Hello, World!' without installing anything")](https://github.com/jina-ai/jina#jina-hello-world-)
+[![Jina](https://github.com/jina-ai/jina/blob/master/.github/badges/license-badge.svg "Jina is licensed under Apache-2.0")](#license)
+[![Jina Docs](https://github.com/jina-ai/jina/blob/master/.github/badges/docs-badge.svg "Checkout our docs and learn Jina")](https://docs.jina.ai)
+[![We are hiring](https://github.com/jina-ai/jina/blob/master/.github/badges/jina-corp-badge-hiring.svg "We are hiring full-time position at Jina")](https://jobs.jina.ai)
+<a href="https://twitter.com/intent/tweet?text=%F0%9F%91%8DCheck+out+Jina%3A+the+New+Open-Source+Solution+for+Neural+Information+Retrieval+%F0%9F%94%8D%40JinaAI_&url=https%3A%2F%2Fgithub.com%2Fjina-ai%2Fjina&hashtags=JinaSearch&original_referer=http%3A%2F%2Fgithub.com%2F&tw_p=tweetbutton" target="_blank">
+  <img src="https://github.com/jina-ai/jina/blob/master/.github/badges/twitter-badge.svg"
+       alt="tweet button" title="👍Share Jina with your friends on Twitter"></img>
+</a>
+[![Python 3.7 3.8](https://github.com/jina-ai/jina/blob/master/.github/badges/python-badge.svg "Jina supports Python 3.7 and above")](#)
+[![Docker](https://github.com/jina-ai/jina/blob/master/.github/badges/docker-badge.svg "Jina is multi-arch ready, can run on differnt architectures")](https://hub.docker.com/r/jinaai/jina/tags)
 
-- Interactive query
-- Index with shards
-- REST and gRPC gateway
-- Dashboard monitor
+</p>
 
-To save you from dependency hell, we'll use the containerized version in these instructions. That means you only need to have [Docker installed](https://docs.docker.com/get-docker/). No Python virtualenv, no Python package (un)install.
+This is an example of using [Jina](http://www.jina.ai)'s neural search framework to search text, image and PDF files in indexed PDF data.
 
-**NOTE** Use Python 3.7 for this example. 
+In this example, we will index the PDF files in a multimodal way. That is, we extract and index both text and images from PDF files.
 
-<!-- START doctoc generated TOC please keep comment here to allow auto update -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-**Table of Contents**
+What's included in this example:
 
-- [TL;DR: Just Show Me the Pokemon!](#query-from-docker)
-- [Run outside of Docker](#run-without-docker)
-- [Troubleshooting](#troubleshooting)
-- [Documentation](#documentation)
-- [Community](#community)
-- [License](#license)
+- Search text, image, pdf (better partial pdf) all in 1 flow or in separate flows
+- Leverage Jina Recursive Document Representation for encoding text
+- Parallel peas to reduce indexing time
+- Customized executors to better fit the needs
+- Detailed docstrings for YAML files to help you understand Jina App
 
-<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+- [PDF search](#pdf-search)
+  * [Use toy data](#use-toy-data)
+  * [Install](#install)
+  * [Run](#run)
+  * [Start the Server](#start-the-server)
+  * [Query via REST API](#query-via-rest-api)
+  * [Documentation](#documentation)
+  * [Community](#community)
+  * [License](#license)
+    
 
+## Use toy data
 
-## Query from Docker
+We have included several PDF blogs as toy data in [`toy_data`](toy_data). This data is ready to use with this example.
+You can also use other PDF files supported by [`pdfplumber`](https://github.com/jsvine/pdfplumber).
 
-> *I want Pokémon! I don't care about Jina cloud-native neural search or whatever big names you throw around, just show me the Pokémon!*
-
-We have a pre-built Docker image ready to use, you need to run this on your console:
-
-```bash
-docker run -p 45678:45678 jinahub/app.example.pokedexwithbit:0.0.1-0.9.20
-```
-
-So now you're ready to query! And for that you have two options:
-
- - You can use [Jinabox.js](https://jina.ai/jinabox.js/) to find the Pokemon which matches most clearly. Just set the endpoint to `http://127.0.0.1:45678/api/search` and drag from the thumbnails on the left or from your file manager.
- - Or you can `curl`/query/js it via HTTP POST request. [Details here](#query-via-rest-api). 
-
-## Run without Docker
-
-### Download and Extract Data
-
-For this example we're using Pokemon sprites from [veekun.com](https://veekun.com/dex/downloads). To download them run:
-
-```sh
-sh ./get_data.sh
-```
-
-### Download and Extract Pretrained Model
-
-In this example we use [BiT (Big Transfer) model](https://github.com/google-research/big_transfer), To download it:
-
-```sh
-sh ./download.sh
-```
-
-### Index Data
-
-```sh
-python app.py index
-```
-
-After this you should see a new `workspace` folder, which contains all the encoded data generated during indexing. 
-
-### Query Data
-
-```python
-python app.py search
-```
-
-And then follow the Jinabox instructions from the [Query from Docker](#query-from-docker) section above.
-
-#### Diving Deeper
-
-Jina's REST API uses the [data URI scheme](https://en.wikipedia.org/wiki/Data_URI_scheme) to represent multimedia data. To query your indexed data, simply organize your picture(s) into this scheme and send a POST request to `http://0.0.0.0:45678/api/search`, e.g.:
+## Install
 
 ```bash
-curl --verbose --request POST -d '{"top_k": 10, "mode": "search",  "data": ["data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAIAAABLbSncAAAA2ElEQVR4nADIADf/AxWcWRUeCEeBO68T3u1qLWarHqMaxDnxhAEaLh0Ssu6ZGfnKcjP4CeDLoJok3o4aOPYAJocsjktZfo4Z7Q/WR1UTgppAAdguAhR+AUm9AnqRH2jgdBZ0R+kKxAFoAME32BL7fwQbcLzhw+dXMmY9BS9K8EarXyWLH8VYK1MACkxlLTY4Eh69XfjpROqjE7P0AeBx6DGmA8/lRRlTCmPkL196pC0aWBkVs2wyjqb/LABVYL8Xgeomjl3VtEMxAeaUrGvnIawVh/oBAAD///GwU6v3yCoVAAAAAElFTkSuQmCC", "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAIAAABLbSncAAAA2ElEQVR4nADIADf/AvdGjTZeOlQq07xSYPgJjlWRwfWEBx2+CgAVrPrP+O5ghhOa+a0cocoWnaMJFAsBuCQCgiJOKDBcIQTiLieOrPD/cp/6iZ/Iu4HqAh5dGzggIQVJI3WqTxwVTDjs5XJOy38AlgHoaKgY+xJEXeFTyR7FOfF7JNWjs3b8evQE6B2dTDvQZx3n3Rz6rgOtVlaZRLvR9geCAxuY3G+0mepEAhrTISES3bwPWYYi48OUrQOc//IaJeij9xZGGmDIG9kc73fNI7eA8VMBAAD//0SxXMMT90UdAAAAAElFTkSuQmCC"]}' -H 'Content-Type: application/json' 'http://0.0.0.0:45678/api/search'
+pip install -r requirements.txt
+```
+
+## Run
+
+| Command | Description |
+| :--- | :--- |
+| ``python app.py -t index`` | To index files/data |
+| ``python app.py -t query`` | To run query on the index |
+| ``python app.py -t dryrun`` | Sanity check on the topology |
+
+## Start the Server
+
+``` bash
+python app.py -t query_restful
+```
+
+## Query via REST API
+
+When the REST gateway is enabled, Jina uses the [data URI scheme](https://en.wikipedia.org/wiki/Data_URI_scheme) to represent multimedia data. Simply organize your picture(s) into this scheme and send a POST request to `http://0.0.0.0:45670/api/search`, e.g.:
+
+``` bash
+curl --request POST -d '{"top_k": 10, "mode": "search",  "data": ["jina hello multimodal"]}' -H 'Content-Type: application/json' 'http://0.0.0.0:45670/api/search'
 ```
 
 [JSON payload syntax and spec can be found in the docs](https://docs.jina.ai/chapters/restapi/#).
 
-The above explains how to use a REST gateway, but by default Jina uses a gRPC gateway, which has much higher performance and richer features. Read our [documentation on Jina IO](https://docs.jina.ai/chapters/io/#) for more information.
-
-### Build a Docker Image
-
-After playing with it for a while, you may want to change the code and rebuild the image. Simply run:
-```bash
-docker build -t jinaai/app.examples.pokedexwithbit .
-```
-
-## Monitor Progress
-
-If it's running successfully, you should be able to see logs scrolling in the console and in the dashboard:
-
-<p align="center">
-  <img src=".github/.README_images/0a8863abb3fcee182e1fe8fe46c47b7a.gif?raw=true" alt="Jina banner" width="45%">
-  <img src=".github/.README_images/ed2907cd11ac26a2a3a2555f16071d13.gif?raw=true" alt="Jina banner" width="45%">
-</p>
-
-Under `$(pwd)/workspace`, you'll see a list of directories `chunk_compound_indexer-*` after indexing. This is because we set shards to 8.
-
-## Troubleshooting
-
-### Memory Issues
-
-BiT model seems pretty resource-hungry. If you are using Docker Desktop, make sure to assign enough memory for your Docker container, especially when you have multiple shards. Below are my MacOS settings with two shards:
-
-<p align="center">
-  <img src=".github/.README_images/d4165abd.png?raw=true" alt="Jina banner" width="80%">
-</p>
-
-### Incremental Indexing
-
-Incremental indexing and entry-level deleting are yet not supported in this demo. Duplicate indexing may not throw exceptions, but may produce strange results. So make sure to clean `$(pwd)/workspace` before each run.
-
-Meet other problems? Check our [troubleshooting guide](https://docs.jina.ai/chapters/troubleshooting.html) or [submit a Github issue](https://github.com/jina-ai/jina/issues/new/choose).
+This example shows you how to feed data into Jina via REST gateway. By default, Jina uses a gRPC gateway, which has much higher performance and rich features. If you are interested in that, go ahead and check out our [other examples](https://learn.jina.ai) and [read our documentation on Jina IO](https://docs.jina.ai/chapters/io/#).
 
 
 ## Documentation 
@@ -148,6 +103,6 @@ The best way to learn Jina in depth is to read our documentation. Documentation 
 
 ## License
 
-Copyright (c) 2021 Jina AI Limited. All rights reserved.
+Copyright (c) 2020 Jina AI Limited. All rights reserved.
 
 Jina is licensed under the Apache License, Version 2.0. See [LICENSE](https://github.com/jina-ai/jina/blob/master/LICENSE) for the full license text.
