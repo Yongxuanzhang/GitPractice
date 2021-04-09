@@ -1,5 +1,5 @@
 
-# PDF search
+# PDF search with Jina
 
 <p align="center">
  
@@ -17,17 +17,15 @@
 
 </p>
 
-This is an example of using [Jina](http://www.jina.ai)'s neural search framework to search text, image and PDF files in indexed PDF data.
-
-In this example, we will index the PDF files in a multimodal way. That is, we extract and index both text and images from PDF files.
+This example demonstrates how [Jina](http://www.jina.ai) can be used to search a repository of PDF files. The example employs a multimodal search architecture, allowing a user to query the data by providing text, or an image, or both simultaneously.
 
 What's included in this example:
 
-- Search text, image, pdf (better partial pdf) all in 1 flow or in separate flows
-- Leverage Jina Recursive Document Representation for encoding text
-- Parallel peas to reduce indexing time
-- Customized executors to better fit the needs
-- Detailed docstrings for YAML files to help you understand Jina App
+- Search text, image, PDF all in one Flow or in separate Flows
+- Leverage Jina Recursive Document Representation to segment and encode text
+- Speed up indexing time with parallel Peas
+- Use customized executors to better fit your needs
+- Provide detailed docstrings for YAML files to help you understand the example
 
 - [PDF search](#pdf-search)
   * [Use toy data](#use-toy-data)
@@ -42,8 +40,7 @@ What's included in this example:
 
 ## Use toy data
 
-We have included several PDF blogs as toy data in [`toy_data`](toy_data). This data is ready to use with this example.
-You can also use other PDF files supported by [`pdfplumber`](https://github.com/jsvine/pdfplumber).
+We have included several PDF blogs as toy data in [`toy_data`](toy_data). This data is ready to use straight away. You can replace this toy data with your own by simply adding new files to the toy_data folder. Be careful to check that the files are supported by [`pdfplumber`](https://github.com/jsvine/pdfplumber)..
 
 ## Install
 
@@ -56,7 +53,11 @@ pip install -r requirements.txt
 | Command | Description |
 | :--- | :--- |
 | ``python app.py -t index`` | To index files/data |
-| ``python app.py -t query`` | To run query on the index |
+| ``python app.py -t query`` | To run a query Flow for searching text, image, and PDF |
+| ``python app.py -t query_text`` | To run a query Flow for searching text |
+| ``python app.py -t query_image`` | To run a query Flow for searching image |
+| ``python app.py -t query_pdf`` | To run a query Flow for searching PDF |
+| ``python app.py -t query_restful`` | To expose the restful API of the query Flow for searching text, image, and PDF|
 | ``python app.py -t dryrun`` | Sanity check on the topology |
 
 ## Start the Server
@@ -73,9 +74,86 @@ When the REST gateway is enabled, Jina uses the [data URI scheme](https://en.wik
 curl --request POST -d '{"top_k": 10, "mode": "search",  "data": ["jina hello multimodal"]}' -H 'Content-Type: application/json' 'http://0.0.0.0:45670/api/search'
 ```
 
+The results will be like:
+
+'''json
+{
+   "requestId":"b5813834-5f42-4f6c-a313-0f397ef5cf12",
+   "search":{
+      "docs":[
+         {
+            "id":"2cd45334-98dd-11eb-85a3-38f9d3eb0f3c",
+            "weight":1.0,
+            "matches":[
+               {
+                  "id":"f61571fc-9706-11eb-ba29-38f9d3eb0f3c",
+                  "uri":"toy_data/blog1.pdf",
+                  "mimeType":"application/pdf",
+                  "score":{
+                     "value":1.0,
+                     "opName":"SimpleAggregateRanker",
+                     "refId":"2cd45334-98dd-11eb-85a3-38f9d3eb0f3c"
+                  },
+                  "adjacency":1,
+                  "contentHash":"3b46f0781f207674"
+               },
+               {
+                  "id":"f618041c-9706-11eb-ba29-38f9d3eb0f3c",
+                  "uri":"toy_data/blog3.pdf",
+                  "mimeType":"application/pdf",
+                  "score":{
+                     "value":0.83538496,
+                     "opName":"SimpleAggregateRanker",
+                     "refId":"2cd45334-98dd-11eb-85a3-38f9d3eb0f3c"
+                  },
+                  "adjacency":1,
+                  "contentHash":"89a45525161ec448"
+               },
+               {
+                  "id":"f617ec70-9706-11eb-ba29-38f9d3eb0f3c",
+                  "uri":"toy_data/blog2.pdf",
+                  "mimeType":"application/pdf",
+                  "score":{
+                     "value":0.71500874,
+                     "opName":"SimpleAggregateRanker",
+                     "refId":"2cd45334-98dd-11eb-85a3-38f9d3eb0f3c"
+                  },
+                  "adjacency":1,
+                  "contentHash":"debde7ffbb210b46"
+               }
+            ],
+            "mimeType":"text/plain",
+            "text":"jina hello multimodal",
+            "contentHash":"f7beb6d4b839aa06"
+         }
+      ]
+   }
+''''
+
 [JSON payload syntax and spec can be found in the docs](https://docs.jina.ai/chapters/restapi/#).
 
 This example shows you how to feed data into Jina via REST gateway. By default, Jina uses a gRPC gateway, which has much higher performance and rich features. If you are interested in that, go ahead and check out our [other examples](https://learn.jina.ai) and [read our documentation on Jina IO](https://docs.jina.ai/chapters/io/#).
+
+## Understand the Flows
+
+The following image shows the structure of index Flow, the text and image will be extracted from PDF files as chunks. Then we will use three paths to process and store the data.
+- For the first path, the DocIndexer will store the Document ID and Document data on disk
+- For the second path, the pods will filter the image chunks, and do the processing. It will also store chunk ID and chunk data on disk
+- For the third path, the pods will filter the text chunks, and further segment text into smaller chunks. The ChunkMeta indexer is used to store data at chunks level and text indexer is used to store data for chunks of chunks.
+The joiner will wait until three paths are finished.
+
+<p align="center">
+  <img src=".github/.README_images/indexflow.png?raw=true" alt="Jina banner" width="90%">
+</p>
+
+The following image shows the structure of query Flow. For query, we can send text, image and PDF files to one Flow and get the results. We use two parallel paths to process the query data and get results.
+- For the first path, we will get embedding of the image data and use image indexer to get the most similar matches at chunks level.
+- For the second path, we will get embedding of the text data at chunks of chunks level in the text encoder. Then we use CCtoC ranker to get the matches from chunks of chunks (CC) level to chunks (C) level. The chunkmeta indexer can help to append meta data for matches of chunks.
+The ChunktoRoot Ranker is used to get the matches at root level and then we can use the matches ID to get the documents data.
+
+<p align="center">
+  <img src=".github/.README_images/queryflow.png?raw=true" alt="Jina banner" width="90%">
+</p>
 
 
 ## Documentation 
@@ -103,6 +181,6 @@ The best way to learn Jina in depth is to read our documentation. Documentation 
 
 ## License
 
-Copyright (c) 2020 Jina AI Limited. All rights reserved.
+Copyright (c) 2021 Jina AI Limited. All rights reserved.
 
 Jina is licensed under the Apache License, Version 2.0. See [LICENSE](https://github.com/jina-ai/jina/blob/master/LICENSE) for the full license text.
