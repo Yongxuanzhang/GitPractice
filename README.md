@@ -27,8 +27,8 @@ What's included in this example:
 - Use customized executors to better fit your needs
 - Provide detailed docstrings for YAML files to help you understand the example
 
-- [PDF search](#pdf-search)
-  * [Use toy data](#use-toy-data)
+- [Table of contents](#pdf-search-with-jina)
+  * [Data preparation](#data-preparation)
   * [Install](#install)
   * [Run](#run)
   * [Start the Server](#start-the-server)
@@ -38,9 +38,13 @@ What's included in this example:
   * [License](#license)
     
 
-## Use toy data
+## Data preparation
 
-We have included several PDF blogs as toy data in [`toy_data`](toy_data). This data is ready to use straight away. You can replace this toy data with your own by simply adding new files to the toy_data folder. Be careful to check that the files are supported by [`pdfplumber`](https://github.com/jsvine/pdfplumber)..
+We have included several PDF blogs as toy data in [`toy_data`](toy_data). This data is ready to use straight away. You can replace this toy data with your own by simply adding new files to the toy_data folder. Be careful to check that the files are supported by [`pdfplumber`](https://github.com/jsvine/pdfplumber).
+You can also run the script to download more pdf data.
+```bash
+python get_data.py
+```
 
 ## Install
 
@@ -74,9 +78,9 @@ When the REST gateway is enabled, Jina uses the [data URI scheme](https://en.wik
 curl --request POST -d '{"top_k": 10, "mode": "search",  "data": ["jina hello multimodal"]}' -H 'Content-Type: application/json' 'http://0.0.0.0:45670/api/search'
 ```
 
-The results will be like:
+<summary> The results will be like: </summary> 
 
-'''json
+```json
 {
    "requestId":"b5813834-5f42-4f6c-a313-0f397ef5cf12",
    "search":{
@@ -128,7 +132,7 @@ The results will be like:
          }
       ]
    }
-''''
+```
 
 [JSON payload syntax and spec can be found in the docs](https://docs.jina.ai/chapters/restapi/#).
 
