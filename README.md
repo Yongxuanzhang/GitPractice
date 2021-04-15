@@ -170,7 +170,7 @@ This measures QPS for indexing and querying.
 This will store the results in [`performance.txt`](./performance.txt).
 
 | Item | Index | Query | 
-| :--- | :--- |
+| :--- | :--- | :--- |
 | Number of Docs | 30 | 3 | 
 | Time | 350.74s | 5.33s |
 
